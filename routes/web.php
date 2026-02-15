@@ -11,3 +11,6 @@ Route::get('/test-web', function () {
 Route::get('/test-no-session', function () {
     return 'ok';
 })->withoutMiddleware([\Illuminate\Session\Middleware\StartSession::class]);
+Route::get('/phpinfo', function () {
+    phpinfo();
+});
