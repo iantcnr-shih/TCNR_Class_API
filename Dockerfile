@@ -22,4 +22,5 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "php -S 0.0.0.0:8000 -t public"]
+CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && php -S 0.0.0.0:8000 -t public"]
+
