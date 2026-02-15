@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["php84", "php84Packages.composer"]
+
+[phases.build]
+cmds = ["composer install --optimize-autoloader --no-dev"]
+
+[start]
+cmd = "php -S 0.0.0.0:$PORT -t public"
