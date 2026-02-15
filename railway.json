@@ -1,0 +1,6 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "deploy": {
+    "startCommand": "vendor/bin/heroku-php-apache2 public/"
+  }
+}
