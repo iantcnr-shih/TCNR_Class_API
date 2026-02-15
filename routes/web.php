@@ -14,3 +14,6 @@ Route::get('/test-no-session', function () {
 Route::get('/phpinfo', function () {
     phpinfo();
 });
+Route::get('/gd-test', function () {
+    return function_exists('imagecreate') ? 'GD OK' : 'GD NOT FOUND';
+});
