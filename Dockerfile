@@ -14,4 +14,4 @@ RUN composer install --no-dev --optimize-autoloader
 
 EXPOSE 8080
 
-CMD sh -c "php -S 0.0.0.0:${PORT:-8080} -t public"
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
