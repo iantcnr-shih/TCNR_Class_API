@@ -12,6 +12,15 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 
+# 建立 Laravel 需要的資料夾
+RUN mkdir -p storage/framework/sessions \
+    storage/framework/views \
+    storage/framework/cache \
+    bootstrap/cache
+
+# 給權限
+RUN chmod -R 775 storage bootstrap/cache
+
 EXPOSE 8000
 
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
