@@ -2,7 +2,14 @@
 
 return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+        'login',
+        'logout',
+        'captcha/*',        // ✅ 允許所有 captcha 路徑
+        'my-captcha/*',
+    ],
 
     'allowed_methods' => ['*'],
 

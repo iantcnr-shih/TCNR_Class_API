@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 
 Route::get('/', function () {
     return view('welcome');
@@ -16,4 +17,17 @@ Route::get('/phpinfo', function () {
 });
 Route::get('/gd-test', function () {
     return function_exists('imagecreate') ? 'GD OK' : 'GD NOT FOUND';
+});
+Route::middleware(['web'])->get('/my-captcha/default', function () {
+    Log::info('Session before captcha: ', session()->all());
+    return Captcha::create('default');
+});
+// Route::get('/my-captcha/default', function () {
+//     Log::info('Session before captcha: ', session()->all());
+//     return response(Captcha::create('default'))
+//         ->header('Content-Type', 'image/png');
+// });
+Route::get('/my-captcha/default', function () {
+    Log::info('Session before captcha: ', session()->all());
+    return Captcha::create('default');
 });

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\User;
 use App\Models\Access;
@@ -72,6 +73,9 @@ class AuthController extends Controller
     // 登入
     public function login(Request $request)
     {
+        Log::info('request: ' . $request);
+        Log::info('Session data: ' . json_encode(session()->all()));
+        Log::info('Captcha input: ' . $request->captcha);
         // 1️⃣ 驗證欄位
         $request->validate([
             'email' => 'required|email',
@@ -98,14 +102,17 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        if ($user = $request->user()) {
+            // 刪除該用戶的所有 session token (若你有使用 token)
+            $user->tokens()->delete();
+        }
 
+        // 清掉 session
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json([
-            'message' => '已登出'
-        ]);
+        return response()->json(['message' => '已登出']);
     }
 
     public function user(Request $request)
