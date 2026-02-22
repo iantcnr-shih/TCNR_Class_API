@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 use App\Models\User;
 use App\Models\Access;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -118,5 +119,25 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    public function getUserIP(Request $request)
+    {
+        // 檢查是否有 X-Forwarded-For 標頭
+        $xForwardedFor = $request->header('X-Forwarded-For');
+
+        // 使用 X-Forwarded-For（如果有），否則使用默認 IP
+        $userIP = $xForwardedFor ? explode(',', $xForwardedFor)[0] : $request->ip();
+        
+        $today = Carbon::now();
+        $todayFormatted = [
+            'date' => $today->toDateString(),  // 格式化為 YYYY-MM-DD
+            'day' => $today->locale('zh_TW')->dayName  // 使用中文星期幾
+        ];
+    
+        return response()->json([
+            'user_ip' => $userIP,
+            'today' => $todayFormatted
+        ]);
     }
 }
