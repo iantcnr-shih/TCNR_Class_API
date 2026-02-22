@@ -10,6 +10,10 @@ Route::post('/addorder', [LunchController::class, 'addorder']);
 Route::get('/getOrders', [LunchController::class, 'getOrders']);
 Route::post('/orderpaid', [LunchController::class, 'orderpaid']);
 Route::get('/getManagerControl', [LunchController::class, 'getManagerControl']);
+Route::post('/addbubbleteaorder', [LunchController::class, 'addbubbleteaorder']);
+Route::get('/getBubbleteaorders', [LunchController::class, 'getBubbleteaorders']);
+Route::post('/bubbleteaorderpaid', [LunchController::class, 'bubbleteaorderpaid']);
+
 
 
 

@@ -8,6 +8,7 @@ use App\Models\Shops;
 use App\Models\MenuCategories;
 use App\Models\Foods;
 use App\Models\Orders;
+use App\Models\BubbleteaOrders;
 use App\Models\OrdersView;
 use App\Models\ManagerControl;
 use Illuminate\Support\Facades\Log;
@@ -241,4 +242,111 @@ class LunchController extends Controller
             ], 500);
         }
     }
+
+    public function addbubbleteaorder(Request $request)
+    {
+        // 取得用戶 IP
+        $xForwardedFor = $request->header('X-Forwarded-For');
+        $user_ip = $xForwardedFor ? explode(',', $xForwardedFor)[0] : $request->ip();
+
+        // 取得前端送過來的訂單資料
+        $order_date = $request->input('order_date'); 
+        $seat_number = $request->input('seat_number'); 
+        $bubbletea_name = $request->input('bubbletea_name'); 
+        $bubbletea_price     = $request->input('bubbletea_price'); 
+
+        try {
+            // 使用 Eloquent create() 插入資料
+            $bubbleteaorder = BubbleteaOrders::create([
+                'order_date'  => $order_date,
+                'seat_number' => $seat_number,
+                'bubbletea_name'     => $bubbletea_name,
+                'bubbletea_price'    => $bubbletea_price,
+                'user_ip'     => $user_ip,
+                'is_paid'     => 0, // 預設未付款
+                'delete_flag' => 0, // 預設未刪除
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'bubbleteaorder'   => $bubbleteaorder
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getBubbleteaorders(Request $request)
+    {
+        $user_ip = $request->ip();
+        // 取 IP 最後一段
+        $ip_parts = explode('.', $user_ip);
+        $last_digit = intval(end($ip_parts));
+
+        // user_no = 最後一碼 - 1
+        $user_no = $last_digit - 1;
+        $seat_number = $request->input('seat_number') ?? $user_no; // 使用 input() 來取得 seat_number
+        $order_date = $request->input('order_date') ?? Carbon::today()->toDateString(); // 使用 input() 來取得 order_date
+        $data = [];
+
+        try {
+            $bubbleteaorders = BubbleteaOrders::select('*')
+                ->where('order_date', $order_date)
+                ->get();
+
+            $data = $bubbleteaorders->toArray();
+
+            // 過濾出指定座位號的訂單
+             $userBubbleteaOrders = $seat_number ? $bubbleteaorders->where('seat_number', $seat_number)->values() : $data;
+
+            return response()->json([
+                'success' => true,
+                'bubbletea_orders' => $data,
+                'user_bubbletea_orders' => $userBubbleteaOrders
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bubbleteaorderpaid(Request $request)
+    {
+        // 取得前端送過來的訂單資料
+        $bubbletea_order_id = $request->input('bubbletea_order_id'); 
+        $is_paid = $request->input('is_paid'); 
+        try {
+            $bubbleteaorder = BubbleteaOrders::where('bubbletea_order_id', $bubbletea_order_id)->first();
+            // 如果找不到該訂單，返回錯誤
+            if (!$bubbleteaorder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'bubbleteaorder not found'
+                ], 404);
+            }
+
+            // 更新 is_paid 狀態
+            $bubbleteaorder->is_paid = $is_paid;
+            $bubbleteaorder->save();  // 儲存更新的資料
+
+            return response()->json([
+                'success' => true,
+                'bubbleteaorder'   => $bubbleteaorder
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
 }
