@@ -18,8 +18,8 @@ class LunchController extends Controller
     public function getShops(Request $request)
     {
         // 取得今天的星期幾 (1-7)
-        // $wday = Carbon::now()->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
-        $wday = 1; // 0 (Sunday) to 6 (Saturday)
+        $wday = Carbon::now()->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
+        // $wday = 1; // 0 (Sunday) to 6 (Saturday)
         $data = [];
 
         try {
@@ -345,6 +345,302 @@ class LunchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function changeOrderOverview(Request $request)
+    {
+        $enabled = $request->input('enabled');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $isOrderable = ManagerControl::where('c_title', 'isOrderable')->first();
+            $isBubbleTeaOrderable = ManagerControl::where('c_title', 'isBubbleTeaOrderable')->first();
+            $charged_seat_number = ManagerControl::where('c_title', 'charged_seat_number')->first();
+            $order_type = ManagerControl::where('c_title', 'order_type')->first();
+            $order_round = ManagerControl::where('c_title', 'order_round')->first();
+            $bubble_tea_url = ManagerControl::where('c_title', 'bubble_tea_url')->first();
+
+            if (!$isOrderable || !$isBubbleTeaOrderable || !$charged_seat_number || !$order_type || !$order_round || !$bubble_tea_url) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            if ($enabled === true) {
+                if ($charged_seat_number instanceof ManagerControl && $charged_seat_number->c_date != $today) {
+                    $charged_seat_number->c_value = '25';
+                    $charged_seat_number->c_date = $today;
+                    $charged_seat_number->save();
+                }
+                if ($order_type instanceof ManagerControl && $order_type->c_date != $today) {
+                    $order_type->c_value = '1';
+                    $order_type->c_date = $today;
+                    $order_type->save();
+                }
+                if ($order_round instanceof ManagerControl &&  $order_round->c_date != $today) {
+                    $order_round->c_value = '1';
+                    $order_round->c_date = $today;
+                    $order_round->save();
+                }
+                if ($bubble_tea_url instanceof ManagerControl && $bubble_tea_url->c_date != $today) {
+                    $bubble_tea_url->c_value = '';
+                    $bubble_tea_url->c_date = $today;
+                    $bubble_tea_url->save();
+                }
+            } 
+
+            // 轉布林
+            $boolEnabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+
+            if ($isOrderable instanceof ManagerControl) {
+                $isOrderable->c_date = $today;
+                $isOrderable->c_value = $boolEnabled ? 'Y' : 'N';
+                $isOrderable->save();
+            }
+
+            if ($isBubbleTeaOrderable instanceof ManagerControl) {
+                $isBubbleTeaOrderable->c_date = $today;
+                $isBubbleTeaOrderable->c_value = $boolEnabled ? 'Y' : 'N';
+                $isBubbleTeaOrderable->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'OrderOverview' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function changeIsMealActive(Request $request)
+    {
+        $enabled = $request->input('enabled');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $isOrderable = ManagerControl::where('c_title', 'isOrderable')->first();
+            if (!$isOrderable) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            // 轉布林
+            $boolEnabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+
+            if ($isOrderable instanceof ManagerControl) {
+                $isOrderable->c_date = $today;
+                $isOrderable->c_value = $boolEnabled ? 'Y' : 'N';
+                $isOrderable->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'IsMealActive' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function changeIsDrinkActive(Request $request)
+    {
+        $enabled = $request->input('enabled');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $isBubbleTeaOrderable = ManagerControl::where('c_title', 'isBubbleTeaOrderable')->first();
+
+            if (!$isBubbleTeaOrderable) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            // 轉布林
+            $boolEnabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+
+            if ($isBubbleTeaOrderable instanceof ManagerControl) {
+                $isBubbleTeaOrderable->c_date = $today;
+                $isBubbleTeaOrderable->c_value = $boolEnabled ? 'Y' : 'N';
+                $isBubbleTeaOrderable->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'IsMealActive' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateChargedSeatNumber(Request $request)
+    {
+        $charged_seat_number = $request->input('charged_seat_number');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $chargedSeatNumber = ManagerControl::where('c_title', 'charged_seat_number')->first();
+
+            if (!$chargedSeatNumber) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            if ($chargedSeatNumber instanceof ManagerControl) {
+                $chargedSeatNumber->c_date = $today;
+                $chargedSeatNumber->c_value = $charged_seat_number;
+                $chargedSeatNumber->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'chargedSeatNumber' => $charged_seat_number
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateBubbleteaOrderURL(Request $request)
+    {
+        $bubble_tea_url = $request->input('bubble_tea_url');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $bubbleTeaUrl = ManagerControl::where('c_title', 'bubble_tea_url')->first();
+
+            if (!$bubbleTeaUrl) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            // 🔑 如果沒有 http:// 或 https://，自動補 https://
+            if (
+                $bubble_tea_url !== '' &&
+                !preg_match('/^https?:\/\//i', $bubble_tea_url)
+            ) {
+                $bubble_tea_url = 'https://' . $bubble_tea_url;
+            }
+
+            // （選擇性）驗證是否為合法 URL
+            if (
+                $bubble_tea_url !== '' &&
+                !filter_var($bubble_tea_url, FILTER_VALIDATE_URL)
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid URL format'
+                ], 422);
+            }
+
+            $bubbleTeaUrl->c_date = $today;
+            $bubbleTeaUrl->c_value = $bubble_tea_url;
+            $bubbleTeaUrl->save();
+
+            return response()->json([
+                'success' => true,
+                'bubbleTeaUrl' => $bubble_tea_url
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateOrderType(Request $request)
+    {
+        $order_type = $request->input('order_type');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $orderType = ManagerControl::where('c_title', 'order_type')->first();
+
+            if (!$orderType) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            if ($orderType instanceof ManagerControl) {
+                $orderType->c_date = $today;
+                $orderType->c_value = $order_type;
+                $orderType->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'orderType' => $order_type
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateOrderRound(Request $request)
+    {
+        $order_round = $request->input('order_round');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $orderRound = ManagerControl::where('c_title', 'order_round')->first();
+
+            if (!$orderRound) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            if ($orderRound instanceof ManagerControl) {
+                $orderRound->c_date = $today;
+                $orderRound->c_value = $order_round;
+                $orderRound->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'orderRound' => $order_round
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
             ], 500);
         }
     }

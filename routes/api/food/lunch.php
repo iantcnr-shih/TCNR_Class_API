@@ -13,7 +13,10 @@ Route::get('/getManagerControl', [LunchController::class, 'getManagerControl']);
 Route::post('/addbubbleteaorder', [LunchController::class, 'addbubbleteaorder']);
 Route::get('/getBubbleteaorders', [LunchController::class, 'getBubbleteaorders']);
 Route::post('/bubbleteaorderpaid', [LunchController::class, 'bubbleteaorderpaid']);
-
-
-
-
+Route::post('/changeOrderOverview', [LunchController::class, 'changeOrderOverview']);
+Route::post('/changeIsMealActive', [LunchController::class, 'changeIsMealActive']);
+Route::post('/changeIsDrinkActive', [LunchController::class, 'changeIsDrinkActive']);
+Route::post('/updateChargedSeatNumber', [LunchController::class, 'updateChargedSeatNumber']);
+Route::post('/updateBubbleteaOrderURL', [LunchController::class, 'updateBubbleteaOrderURL']);
+Route::post('/updateOrderType', [LunchController::class, 'updateOrderType']);
+Route::post('/updateOrderRound', [LunchController::class, 'updateOrderRound']);
