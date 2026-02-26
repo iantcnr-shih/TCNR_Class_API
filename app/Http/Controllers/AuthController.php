@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-use App\Models\User;
-use App\Models\Access;
+use App\Models\Users;
+use App\Models\AuthUsers;
 use Carbon\Carbon;
 
 class AuthController extends Controller
@@ -37,7 +37,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|unique:access,email',
+            'email' => 'required|email|unique:auth_users,email',
             'password' => 'required|min:6',
             'code' => 'required'
         ], [
@@ -53,14 +53,14 @@ class AuthController extends Controller
         }
 
         // 🔥 先檢查 email 是否已存在
-        $exists = Access::where('email', $request->email)->exists();
+        $exists = AuthUsers::where('email', $request->email)->exists();
         if ($exists) {
             return response()->json([
                 'message' => '此 Email 已被註冊'
             ], 400);
         }
         
-        $access = Access::create([
+        $authuser = AuthUsers::create([
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
@@ -74,9 +74,6 @@ class AuthController extends Controller
     // 登入
     public function login(Request $request)
     {
-        Log::info('request: ' . $request);
-        Log::info('Session data: ' . json_encode(session()->all()));
-        Log::info('Captcha input: ' . $request->captcha);
         // 1️⃣ 驗證欄位
         $request->validate([
             'email' => 'required|email',
@@ -84,20 +81,20 @@ class AuthController extends Controller
             'captcha' => 'required|captcha'
         ]);
 
-        $access = Access::where('email', $request->email)->first();
+        $authuser = AuthUsers::where('email', $request->email)->first();
 
-        if (!$access || !Hash::check($request->password, $access->password)) {
+        if (!$authuser || !Hash::check($request->password, $authuser->password)) {
             return response()->json([
                 'message' => '帳號或密碼錯誤'
             ], 401);
         }
 
         // 5️⃣ 登入（使用 Sanctum session）
-        Auth::login($access, $request->remember ?? false);
+        Auth::login($authuser, $request->remember ?? false);
 
         return response()->json([
             'message' => '登入成功',
-            'access_id' => $access->access_id
+            'authuser_id' => $authuser->id
         ]);
     }
 
@@ -116,9 +113,43 @@ class AuthController extends Controller
         return response()->json(['message' => '已登出']);
     }
 
+    // public function user(Request $request)
+    // {
+    //     $access = $request->user(); // Access model
+
+    //     if (!$access) {
+    //         return response()->json(['error' => 'Unauthenticated'], 401);
+    //     }
+
+    //     $user = $access->user;
+    //     $user->load('roles');
+
+    //     return response()->json([
+    //         'email' => $access->email,
+    //         'seat_number' => $user->seat_number,
+    //         'user_name' => $user->user_name,
+    //         'roles' => $user->roles->pluck('role_name'),
+    //     ]);
+    // }
+
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        $auth = $request->user(); // AuthUser
+        $user = $auth->user;
+        $user->load('roles');
+    
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'user_name' => $user->user_name,
+                'seat_number' => $user->seat_number,
+                'roles' => $user->roles->pluck('role_name'),
+            ],
+            'auth' => [
+                'provider' => $auth->provider,
+                'email' => $auth->email,
+            ]
+        ]);
     }
 
     public function getUserIP(Request $request)
