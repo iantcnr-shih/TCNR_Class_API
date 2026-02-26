@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\LunchController;
-
+use Illuminate\Support\Facades\Route;
 
 Route::get('/getShops', [LunchController::class, 'getShops']);
 Route::get('/getCategories', [LunchController::class, 'getCategories']);
