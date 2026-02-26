@@ -15,19 +15,50 @@ use Illuminate\Support\Facades\Log;
 
 class LunchController extends Controller
 {
+    public function getAllShops(Request $request)
+    {
+        try {
+            // 查詢所有店家：
+            $AllShops = Shops::get();
+
+            return response()->json([
+                'success' => true,
+                'AllShops' => $AllShops
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getShops(Request $request)
     {
         // 取得今天的星期幾 (1-7)
         $wday = Carbon::now()->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
         // $wday = 1; // 0 (Sunday) to 6 (Saturday)
+        $today = Carbon::today()->toDateString();
         $data = [];
 
         try {
-            // 第一個查詢：wday_shop_view
-            $firstShops = WdayShopView::select('shop_id', 'shop_name')
-                ->where('wday', $wday)
-                ->whereNotNull('shop_id')
-                ->get();
+            $selectShop = ManagerControl::where('c_date',$today)
+                ->where('c_title','thisday_shop_id')
+                ->whereNotNull('c_value')
+                ->first();
+            if ($selectShop) {
+                // 有指定今日店家
+                $firstShops = Shops::select('shop_id', 'shop_name')
+                    ->where('shop_id', $selectShop->c_value)
+                    ->get();
+            } else {
+                // 沒指定 → 用星期店家
+                $firstShops = WdayShopView::select('shop_id', 'shop_name')
+                    ->where('wday', $wday)
+                    ->whereNotNull('shop_id')
+                    ->get();
+            }
 
             $data = $firstShops->isEmpty() ? [] : $firstShops->toArray();
 
@@ -109,6 +140,7 @@ class LunchController extends Controller
         // 取得用戶 IP
         $xForwardedFor = $request->header('X-Forwarded-For');
         $user_ip = $xForwardedFor ? explode(',', $xForwardedFor)[0] : $request->ip();
+        $today = Carbon::today()->toDateString();
 
         // 取得前端送過來的訂單資料
         $order_date   = $request->input('order_date'); 
@@ -119,6 +151,20 @@ class LunchController extends Controller
         $quantity     = $request->input('quantity'); 
 
         try {
+            $default_order_round = ManagerControl::where('c_date',$today)
+            ->where('c_title','order_round')
+            ->first();
+
+            $defaultRound = $default_order_round?->c_value;
+
+            if ($defaultRound !== null && (string)$defaultRound !== (string)$order_round) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'order_round_error',
+                    'orderRound' => $defaultRound,
+                ]);
+            }
+
             // 使用 Eloquent create() 插入資料
             $order = Orders::create([
                 'order_date'  => $order_date,
@@ -157,14 +203,14 @@ class LunchController extends Controller
         $seat_number = $request->input('seat_number') ?? $user_no; // 使用 input() 來取得 seat_number
         $order_date = $request->input('order_date') ?? Carbon::today()->toDateString(); // 使用 input() 來取得 order_date
         $order_type = $request->input('order_type'); // 使用 input() 來取得 order_type
-        $order_round = $request->input('order_round'); // 使用 input() 來取得 order_round
+        // $order_round = $request->input('order_round'); // 使用 input() 來取得 order_round
         $data = [];
 
         try {
             $orders = OrdersView::select('*')
                 ->where('order_date', $order_date)
                 ->where('order_type', $order_type)
-                ->where('order_round', $order_round)
+                // ->where('order_round', $order_round)
                 ->get();
 
             $data = $orders->toArray();
@@ -361,8 +407,9 @@ class LunchController extends Controller
             $order_type = ManagerControl::where('c_title', 'order_type')->first();
             $order_round = ManagerControl::where('c_title', 'order_round')->first();
             $bubble_tea_url = ManagerControl::where('c_title', 'bubble_tea_url')->first();
+            $thisday_shop_id = ManagerControl::where('c_title', 'thisday_shop_id')->first();
 
-            if (!$isOrderable || !$isBubbleTeaOrderable || !$charged_seat_number || !$order_type || !$order_round || !$bubble_tea_url) {
+            if (!$isOrderable || !$isBubbleTeaOrderable || !$charged_seat_number || !$order_type || !$order_round || !$bubble_tea_url || !$thisday_shop_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'item not found'
@@ -389,6 +436,16 @@ class LunchController extends Controller
                     $bubble_tea_url->c_value = '';
                     $bubble_tea_url->c_date = $today;
                     $bubble_tea_url->save();
+                }
+                if ($thisday_shop_id instanceof ManagerControl && $thisday_shop_id->c_date != $today) {
+                    $wday = Carbon::now()->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
+                    $shop = WdayShopView::where('wday', $wday)
+                        ->whereNotNull('shop_id')
+                        ->first();
+
+                    $thisday_shop_id->c_value = $shop?->shop_id;
+                    $thisday_shop_id->c_date = $today;
+                    $thisday_shop_id->save();
                 }
             } 
 
@@ -427,11 +484,23 @@ class LunchController extends Controller
 
         try {
             $isOrderable = ManagerControl::where('c_title', 'isOrderable')->first();
-            if (!$isOrderable) {
+            $thisday_shop_id = ManagerControl::where('c_title', 'thisday_shop_id')->first();
+            
+            if (!$isOrderable || !$thisday_shop_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'item not found'
                 ], 404);
+            }
+
+            if ($thisday_shop_id instanceof ManagerControl && $thisday_shop_id->c_date != $today) {
+                $wday = Carbon::now()->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
+                $shop = WdayShopView::where('wday', $wday)
+                    ->whereNotNull('shop_id')
+                    ->first();
+                $thisday_shop_id->c_value = $shop?->shop_id;
+                $thisday_shop_id->c_date = $today;
+                $thisday_shop_id->save();
             }
 
             // 轉布林
@@ -483,6 +552,40 @@ class LunchController extends Controller
             return response()->json([
                 'success' => true,
                 'IsMealActive' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateThisdayshop(Request $request)
+    {
+        $thisdayShopId = $request->input('thisday_shop_id');
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $thisday_shop_id = ManagerControl::where('c_title', 'thisday_shop_id')->first();
+
+            if (!$thisday_shop_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'item not found'
+                ], 404);
+            }
+
+            if ($thisday_shop_id instanceof ManagerControl) {
+                $thisday_shop_id->c_date = $today;
+                $thisday_shop_id->c_value = $thisdayShopId;
+                $thisday_shop_id->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'thisdayShopId' => $thisday_shop_id
             ]);
 
         } catch (\Exception $e) {

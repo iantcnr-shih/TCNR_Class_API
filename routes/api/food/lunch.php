@@ -3,6 +3,7 @@
 use App\Http\Controllers\LunchController;
 
 
+Route::get('/getAllShops', [LunchController::class, 'getAllShops']);
 Route::get('/getShops', [LunchController::class, 'getShops']);
 Route::get('/getCategories', [LunchController::class, 'getCategories']);
 Route::get('/getFoods', [LunchController::class, 'getFoods']);
@@ -16,6 +17,7 @@ Route::post('/bubbleteaorderpaid', [LunchController::class, 'bubbleteaorderpaid'
 Route::post('/changeOrderOverview', [LunchController::class, 'changeOrderOverview']);
 Route::post('/changeIsMealActive', [LunchController::class, 'changeIsMealActive']);
 Route::post('/changeIsDrinkActive', [LunchController::class, 'changeIsDrinkActive']);
+Route::post('/updateThisdayshop', [LunchController::class, 'updateThisdayshop']);
 Route::post('/updateChargedSeatNumber', [LunchController::class, 'updateChargedSeatNumber']);
 Route::post('/updateBubbleteaOrderURL', [LunchController::class, 'updateBubbleteaOrderURL']);
 Route::post('/updateOrderType', [LunchController::class, 'updateOrderType']);

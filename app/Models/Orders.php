@@ -14,5 +14,5 @@ class Orders extends Model
     public $timestamps = true; // 自動尋找 created_at 和 updated_at 欄位
 
     // 如果資料表有特定的欄位名稱，將其設定在 $fillable 或 $guarded
-    protected $fillable = ['order_id', 'order_date', 'order_type', 'order_round', 'seat_number', 'food_id', 'quantity', 'is_paid', 'user_ip', 'delete_flag'];
+    protected $fillable = ['order_id', 'order_date', 'order_type', 'order_round', 'seat_number', 'food_id', 'quantity', 'is_paid', 'user_ip', 'delete_flag', 'remark'];
 }
