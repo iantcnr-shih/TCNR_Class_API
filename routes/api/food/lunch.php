@@ -22,3 +22,6 @@ Route::post('/updateChargedSeatNumber', [LunchController::class, 'updateChargedS
 Route::post('/updateBubbleteaOrderURL', [LunchController::class, 'updateBubbleteaOrderURL']);
 Route::post('/updateOrderType', [LunchController::class, 'updateOrderType']);
 Route::post('/updateOrderRound', [LunchController::class, 'updateOrderRound']);
+
+Route::get('/GetAlloders', [LunchController::class, 'GetAlloders']);
+

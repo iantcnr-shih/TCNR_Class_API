@@ -210,6 +210,7 @@ class LunchController extends Controller
             $orders = OrdersView::select('*')
                 ->where('order_date', $order_date)
                 ->where('order_type', $order_type)
+                ->where('delete_flag', 0)
                 // ->where('order_round', $order_round)
                 ->get();
 
@@ -744,6 +745,26 @@ class LunchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+
+
+    public function GetAlloders(Request $request)
+    {
+        try {
+            $orders = OrdersView::get();
+        
+            return response()->json([
+                'success' => true,
+                'Allorders' => $orders,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
             ], 500);
         }
     }
