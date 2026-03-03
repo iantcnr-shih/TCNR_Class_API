@@ -44,7 +44,7 @@ class Users extends Model
 
     public function authAccounts()
     {
-        return $this->hasMany(AuthUser::class);
+        return $this->hasMany(AuthUsers::class);
     }
 
     public function roles()

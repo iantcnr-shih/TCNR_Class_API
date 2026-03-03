@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
+use Mews\Captcha\Captcha;
 
 Route::get('/', function () {
     return view('welcome');
