@@ -749,8 +749,6 @@ class LunchController extends Controller
         }
     }
 
-
-
     public function GetAlloders(Request $request)
     {
         try {

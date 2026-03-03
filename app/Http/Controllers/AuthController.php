@@ -32,7 +32,6 @@ class AuthController extends Controller
         ]);
     }
 
-
     // 🔥 註冊
     public function register(Request $request)
     {
@@ -113,38 +112,41 @@ class AuthController extends Controller
         return response()->json(['message' => '已登出']);
     }
 
-    // public function user(Request $request)
-    // {
-    //     $access = $request->user(); // Access model
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
 
-    //     if (!$access) {
-    //         return response()->json(['error' => 'Unauthenticated'], 401);
-    //     }
+        $user = $request->user();
 
-    //     $user = $access->user;
-    //     $user->load('roles');
+        if (!\Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => '密碼錯誤'], 401);
+        }
 
-    //     return response()->json([
-    //         'email' => $access->email,
-    //         'seat_number' => $user->seat_number,
-    //         'user_name' => $user->user_name,
-    //         'roles' => $user->roles->pluck('role_name'),
-    //     ]);
-    // }
+        return response()->json(['success' => true]);
+    }
 
     public function user(Request $request)
     {
         $auth = $request->user(); // AuthUser
-        $user = $auth->user;
-        $user->load('roles');
-    
-        return response()->json([
-            'user' => [
+        $user = $auth->user; // 可能是 null
+
+        if ($user) {
+            $user->load('roles');
+            $userData = [
                 'id' => $user->id,
                 'user_name' => $user->user_name,
                 'seat_number' => $user->seat_number,
                 'roles' => $user->roles->pluck('role_name'),
-            ],
+            ];
+        } else {
+            $userData = null; // 或者給預設空陣列 []
+        }
+
+    
+        return response()->json([
+            'user' => $userData,
             'auth' => [
                 'provider' => $auth->provider,
                 'email' => $auth->email,
