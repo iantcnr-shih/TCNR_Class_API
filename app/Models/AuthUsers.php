@@ -13,6 +13,8 @@ class AuthUsers extends Authenticatable
 
     protected $table = 'auth_users';
     protected $primaryKey = 'id';
+    public $incrementing = true; // 如果 id 是自增
+    protected $keyType = 'int';
 
     protected $fillable = [
         'user_id',       // 綁定 users 表

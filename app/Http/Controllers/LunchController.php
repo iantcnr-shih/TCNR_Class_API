@@ -193,14 +193,8 @@ class LunchController extends Controller
 
     public function getOrders(Request $request)
     {
-        $user_ip = $request->ip();
-        // 取 IP 最後一段
-        $ip_parts = explode('.', $user_ip);
-        $last_digit = intval(end($ip_parts));
-
         // user_no = 最後一碼 - 1
-        $user_no = $last_digit - 1;
-        $seat_number = $request->input('seat_number') ?? $user_no; // 使用 input() 來取得 seat_number
+        $seat_number = $request->input('seat_number'); // 使用 input() 來取得 seat_number
         $order_date = $request->input('order_date') ?? Carbon::today()->toDateString(); // 使用 input() 來取得 order_date
         $order_type = $request->input('order_type'); // 使用 input() 來取得 order_type
         // $order_round = $request->input('order_round'); // 使用 input() 來取得 order_round
@@ -255,6 +249,31 @@ class LunchController extends Controller
             return response()->json([
                 'success' => true,
                 'order'   => $order
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUserHistoryOrders(Request $request)
+    {
+        $seat_number = intval($request->input('seat_number'));
+        $data = [];
+
+        try {
+            $orders = OrdersView::select('*')
+                ->where('seat_number', $seat_number)
+                ->get();
+
+            $data = $orders->toArray();
+
+            return response()->json([
+                'success' => true,
+                'user_orders' => $data
             ]);
 
         } catch (\Exception $e) {

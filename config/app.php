@@ -153,7 +153,6 @@ return [
         Illuminate\View\ViewServiceProvider::class,
 
         // Packages
-        Mews\Captcha\CaptchaServiceProvider::class,
         Laravel\Sanctum\SanctumServiceProvider::class,
     ],
 
@@ -172,7 +171,6 @@ return [
         'File' => Illuminate\Support\Facades\File::class,
         'Hash' => Illuminate\Support\Facades\Hash::class,
         'Route' => Illuminate\Support\Facades\Route::class, // 🔑 routes 使用
-        'Captcha' => Mews\Captcha\Facades\Captcha::class,   // 🔑 captcha 使用
     ],
 
 ];

@@ -2,9 +2,6 @@
 
 use App\Http\Controllers\AuthController;
 
-
-Route::middleware(['web'])->post('/login', [AuthController::class, 'login']);
-Route::middleware(['web', 'auth:sanctum'])->post('/verify-password', [AuthController::class, 'verifyPassword']);
-Route::middleware(['web', 'auth:sanctum'])->post('/logout', [AuthController::class, 'logout']);
-Route::middleware(['web', 'auth:sanctum'])->get('/user', [AuthController::class, 'user']);
-Route::get('/getUserIP', [AuthController::class, 'getUserIP']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::middleware(['auth:sanctum'])->post('/logout', [AuthController::class, 'logout']);
+Route::middleware(['auth:sanctum'])->post('/logoutAll', [AuthController::class, 'logoutAllDevices']);

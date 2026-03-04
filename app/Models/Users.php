@@ -2,45 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-// class Users extends Model
-// {
-//     use HasFactory;
-
-//     protected $table = 'users';
-//     protected $primaryKey = 'user_id';
-
-//     protected $fillable = [
-//         'user_name',
-//         'seat_number',
-//         'access_id',
-//     ];
-//     // 關聯回登入帳號
-//     public function access()
-//     {
-//         return $this->belongsTo(Access::class, 'access_id', 'access_id');
-//     }
-
-//     public function roles()
-//     {
-//         return $this->belongsToMany(
-//             Role::class,
-//             'user_roles',
-//             'user_id',
-//             'role_id'
-//         );
-//     }
-// }
 
 class Users extends Model
 {
     protected $table = 'users';
     protected $primaryKey = 'user_id'; // 如果主鍵不是 id
     public $timestamps = false;
-    protected $fillable = ['user_name', 'seat_number'];
+    protected $fillable = ['seat_number', 'user_name', 'user_en_name', 'user_nick_name', 'bio', 'phone', 'github', 'linkedin', 'skills'];
 
     public function authAccounts()
     {
