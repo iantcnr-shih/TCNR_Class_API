@@ -13,40 +13,69 @@ class ReviewController extends Controller
      * GET /api/reviews?shop_id=1
      * GET /api/reviews?shop_id=1&food_id=null   -> 店家評論（food_id IS NULL）
      * GET /api/reviews?shop_id=1&food_id=3      -> 餐點評論（food_id = 3）
+     * GET /api/reviews?shop_id=1&type=shop      -> 店家評論（food_id IS NULL）
+     * GET /api/reviews?shop_id=1&type=food      -> 餐點評論（food_id IS NOT NULL）
      */
     public function index(Request $request)
     {
         $shopId = $request->query('shop_id');
         $foodId = $request->query('food_id'); // 可能是 null / 'null' / '' / '3'
+        $type   = $request->query('type');    // shop | food | null
 
         if (!$shopId) {
             return response()->json(['message' => 'shop_id is required'], 422);
         }
 
+        // normalize
+        $type = $type ? strtolower(trim($type)) : null;
+        if ($request->has('food_id') && $foodId === '') {
+            $foodId = null;
+        }
+
         $query = DB::table('reviews as r')
             ->join('users as u', 'u.user_id', '=', 'r.user_id')
+            ->join('shops as s', 's.shop_id', '=', 'r.shop_id')
             ->leftJoin('foods as f', 'f.food_id', '=', 'r.food_id')
             ->where('r.shop_id', $shopId)
             ->select([
                 'r.review_id',
                 'r.shop_id',
+                's.shop_name',
                 'r.food_id',
+                DB::raw('f.food_name as food_name'),
                 'r.user_id',
+                'u.user_name',
                 'r.rating',
                 'r.comment',
                 'r.created_at',
                 'r.updated_at',
-                'u.user_name',
-                DB::raw('f.food_name as food_name'),
             ])
             ->orderByDesc('r.created_at');
 
-        // 有帶 food_id 參數才過濾（相容 ?food_id=null / ?food_id= / ?food_id=3）
+        /**
+         * 過濾優先順序：
+         * 1) food_id（指定餐點 or 指定店家評價）
+         * 2) type（shop/food）
+         * 3) 都沒有 -> 全部
+         */
         if ($request->has('food_id')) {
-            if ($foodId === null || $foodId === '' || $foodId === 'null') {
-                $query->whereNull('r.food_id');      // 店家評論
+            // 相容 ?food_id=null 代表店家評價
+            if ($foodId === null || $foodId === 'null') {
+                $query->whereNull('r.food_id');
             } else {
-                $query->where('r.food_id', $foodId); // 餐點評論
+                $foodIdInt = (int) $foodId;
+                if ($foodIdInt <= 0) {
+                    return response()->json(['message' => 'food_id must be a positive integer or null'], 422);
+                }
+                $query->where('r.food_id', $foodIdInt);
+            }
+        } else if ($type) {
+            if ($type === 'shop') {
+                $query->whereNull('r.food_id');
+            } else if ($type === 'food') {
+                $query->whereNotNull('r.food_id');
+            } else {
+                return response()->json(['message' => 'type must be shop or food'], 422);
             }
         }
 
@@ -62,41 +91,39 @@ class ReviewController extends Controller
     public function store(StoreReviewRequest $request)
     {
         try {
-            // 只取需要寫入 reviews 的欄位
             $payload = $request->only(['shop_id', 'food_id', 'user_id', 'rating', 'comment']);
 
-            // reviews.created_at 預設 current_timestamp()
             $newId = DB::table('reviews')->insertGetId([
                 'shop_id' => $payload['shop_id'],
                 'food_id' => $payload['food_id'] ?? null,
                 'user_id' => $payload['user_id'],
                 'rating'  => $payload['rating'],
                 'comment' => $payload['comment'] ?? null,
-                // 不手動塞 created_at/updated_at，交給 DB 預設
             ]);
 
-            // 再查回含 user_name / food_name 的完整資料
+            // 回傳含 user_name / food_name / shop_name
             $review = DB::table('reviews as r')
                 ->join('users as u', 'u.user_id', '=', 'r.user_id')
+                ->join('shops as s', 's.shop_id', '=', 'r.shop_id')
                 ->leftJoin('foods as f', 'f.food_id', '=', 'r.food_id')
                 ->where('r.review_id', $newId)
                 ->select([
                     'r.review_id',
                     'r.shop_id',
+                    's.shop_name',
                     'r.food_id',
+                    DB::raw('f.food_name as food_name'),
                     'r.user_id',
+                    'u.user_name',
                     'r.rating',
                     'r.comment',
                     'r.created_at',
                     'r.updated_at',
-                    'u.user_name',
-                    DB::raw('f.food_name as food_name'),
                 ])
                 ->first();
 
             return response()->json(['data' => $review], 201);
         } catch (QueryException $e) {
-            // uk_user_shop_food 重複會進來（MySQL: 23000）
             if ($e->getCode() === '23000') {
                 return response()->json([
                     'message' => 'Duplicate review (unique constraint: uk_user_shop_food)'
