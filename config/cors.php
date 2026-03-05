@@ -4,6 +4,7 @@ return [
 
     'paths' => [
         'api/*',
+        'TCNR_CLASS_API/api/*',
         'sanctum/csrf-cookie',
         'login',
         'logout',
@@ -14,9 +15,11 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://10.140.241.130:3000',
+        'https://iantcnr-shih.github.io',
+        // 'http://10.140.241.130:3000',
+        'https://lohas.idv.tw',
+        'http://192.168.12.106:3000',
         'http://127.0.0.1:3000',
-        'http://localhost:3000',
         ],
 
     'allowed_origins_patterns' => [],

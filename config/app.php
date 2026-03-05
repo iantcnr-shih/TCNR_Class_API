@@ -154,6 +154,8 @@ return [
 
         // Packages
         Laravel\Sanctum\SanctumServiceProvider::class,
+
+        App\Providers\RouteServiceProvider::class,
     ],
 
     /*
