@@ -33,12 +33,12 @@ class ReviewController extends Controller
         }
 
         $query = DB::table('reviews as r')
-            ->join('users as u', 'u.user_id', '=', 'r.user_id')
-            ->join('shops as s', 's.shop_id', '=', 'r.shop_id')
-            ->leftJoin('foods as f', 'f.food_id', '=', 'r.food_id')
+            ->join('users as u', 'u.id', '=', 'r.user_id')
+            ->join('shops as s', 's.id', '=', 'r.shop_id')
+            ->leftJoin('foods as f', 'f.id', '=', 'r.food_id')
             ->where('r.shop_id', $shopId)
             ->select([
-                'r.review_id',
+                'r.id as review_id',
                 'r.shop_id',
                 's.shop_name',
                 'r.food_id',
@@ -103,12 +103,12 @@ class ReviewController extends Controller
 
             // 回傳含 user_name / food_name / shop_name
             $review = DB::table('reviews as r')
-                ->join('users as u', 'u.user_id', '=', 'r.user_id')
-                ->join('shops as s', 's.shop_id', '=', 'r.shop_id')
-                ->leftJoin('foods as f', 'f.food_id', '=', 'r.food_id')
-                ->where('r.review_id', $newId)
+                ->join('users as u', 'u.id', '=', 'r.user_id')
+                ->join('shops as s', 's.id', '=', 'r.shop_id')
+                ->leftJoin('foods as f', 'f.id', '=', 'r.food_id')
+                ->where('r.id', $newId)
                 ->select([
-                    'r.review_id',
+                    'r.id as review_id',
                     'r.shop_id',
                     's.shop_name',
                     'r.food_id',

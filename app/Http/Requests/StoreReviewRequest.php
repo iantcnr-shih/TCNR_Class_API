@@ -45,8 +45,8 @@ class StoreReviewRequest extends FormRequest
 
             // 驗證 food 是否屬於 shop（foods -> menu_categories）
             $foodShopId = DB::table('foods as f')
-                ->join('menu_categories as mc', 'mc.menu_categorie_id', '=', 'f.menu_category_id')
-                ->where('f.food_id', $foodId)
+                ->join('menu_categories as mc', 'mc.id', '=', 'f.menu_category_id')
+                ->where('f.id', $foodId)
                 ->value('mc.shop_id');
 
             // rules() 的 exists 通常會先擋，但保守處理（資料缺 mapping 時）

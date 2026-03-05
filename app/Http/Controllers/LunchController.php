@@ -19,7 +19,8 @@ class LunchController extends Controller
     {
         try {
             // 查詢所有店家：
-            $AllShops = Shops::get();
+            $AllShops = Shops::select('id as shop_id', 'shop_name', 'shop_url')
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -49,8 +50,8 @@ class LunchController extends Controller
                 ->first();
             if ($selectShop) {
                 // 有指定今日店家
-                $firstShops = Shops::select('shop_id', 'shop_name')
-                    ->where('shop_id', $selectShop->c_value)
+                $firstShops = Shops::select('id as shop_id', 'shop_name')
+                    ->where('id', $selectShop->c_value)
                     ->get();
             } else {
                 // 沒指定 → 用星期店家
@@ -63,7 +64,7 @@ class LunchController extends Controller
             $data = $firstShops->isEmpty() ? [] : $firstShops->toArray();
 
             // 第二個查詢：固定 shop_url
-            $secondShops = Shops::select('shop_id', 'shop_name')
+            $secondShops = Shops::select('id as shop_id', 'shop_name')
                 ->whereIn('shop_url', ['jiaxiang', 'zhongxing'])
                 ->get();
 
@@ -90,7 +91,7 @@ class LunchController extends Controller
         $data = [];
 
         try {
-            $categories = MenuCategories::select('*')
+            $categories = MenuCategories::select('id as menu_category_id','shop_id', 'category_number', 'category_name')
                 ->where('shop_id', $shop_id)
                 ->get();
 
@@ -116,7 +117,7 @@ class LunchController extends Controller
         $data = [];
 
         try {
-            $foods = Foods::select('*')
+            $foods = Foods::select('id as food_id', 'menu_category_id', 'food_name', 'price')
                 ->where('menu_category_id', $menu_category_id)
                 ->get();
 
@@ -146,7 +147,7 @@ class LunchController extends Controller
         $order_date   = $request->input('order_date'); 
         $order_type   = $request->input('order_type'); 
         $order_round  = $request->input('order_round'); 
-        $seat_number  = $request->input('seat_number'); 
+        $user_id  = $request->input('user_id'); 
         $food_id      = $request->input('food_id'); 
         $quantity     = $request->input('quantity'); 
 
@@ -170,7 +171,7 @@ class LunchController extends Controller
                 'order_date'  => $order_date,
                 'order_type'  => $order_type,
                 'order_round' => $order_round,
-                'seat_number' => $seat_number,
+                'user_id' => $user_id,
                 'food_id'     => $food_id,
                 'quantity'    => $quantity,
                 'user_ip'     => $user_ip,
@@ -194,15 +195,14 @@ class LunchController extends Controller
     public function getOrders(Request $request)
     {
         // user_no = 最後一碼 - 1
-        $seat_number = $request->input('seat_number'); // 使用 input() 來取得 seat_number
+        $user_id = $request->input('user_id'); // 使用 input() 來取得 seat_number
         $order_date = $request->input('order_date') ?? Carbon::today()->toDateString(); // 使用 input() 來取得 order_date
         $order_type = $request->input('order_type'); // 使用 input() 來取得 order_type
         // $order_round = $request->input('order_round'); // 使用 input() 來取得 order_round
         $data = [];
 
         try {
-            $orders = OrdersView::select('*')
-                ->where('order_date', $order_date)
+            $orders = OrdersView::where('order_date', $order_date)
                 ->where('order_type', $order_type)
                 ->where('delete_flag', 0)
                 // ->where('order_round', $order_round)
@@ -211,7 +211,7 @@ class LunchController extends Controller
             $data = $orders->toArray();
 
             // 過濾出指定座位號的訂單
-             $userOrders = $seat_number ? $orders->where('seat_number', $seat_number)->values() : $data;
+             $userOrders = $user_id ? $orders->where('user_id', $user_id)->values() : $data;
 
             return response()->json([
                 'success' => true,
@@ -230,10 +230,10 @@ class LunchController extends Controller
     public function orderpaid(Request $request)
     {
         // 取得前端送過來的訂單資料
-        $order_id = $request->input('order_id'); 
+        $order_id = (int) $request->input('order_id');
         $is_paid = $request->input('is_paid'); 
         try {
-            $order = Orders::where('order_id', $order_id)->first();
+            $order = Orders::find($order_id);
             // 如果找不到該訂單，返回錯誤
             if (!$order) {
                 return response()->json([
@@ -261,13 +261,46 @@ class LunchController extends Controller
 
     public function getUserHistoryOrders(Request $request)
     {
-        $seat_number = intval($request->input('seat_number'));
+        $user_id = intval($request->input('user_id'));
         $data = [];
 
         try {
-            $orders = OrdersView::select('*')
-                ->where('seat_number', $seat_number)
+            $orders = OrdersView::where('user_id', $user_id)
                 ->get();
+
+            $data = $orders->toArray();
+
+            return response()->json([
+                'success' => true,
+                'user_orders' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUserHistoryBubbleteaOrders(Request $request)
+    {
+        $user_id = intval($request->input('user_id'));
+        $data = [];
+
+        try {
+            $orders = BubbleteaOrders::select(
+                'bubbletea_orders.order_date',
+                'bubbletea_orders.user_id',
+                'bubbletea_orders.bubbletea_name',
+                'bubbletea_orders.bubbletea_price',
+                'bubbletea_orders.is_paid',
+                'bubbletea_orders.delete_flag',
+                'users.seat_number'
+            )
+            ->leftJoin('users', 'bubbletea_orders.user_id', '=', 'users.id')
+            ->where('bubbletea_orders.user_id', $user_id)
+            ->get();
 
             $data = $orders->toArray();
 
@@ -290,8 +323,7 @@ class LunchController extends Controller
         $data = [];
 
         try {
-            $controls = ManagerControl::select('*')
-                ->where('c_date',$today)
+            $controls = ManagerControl::where('c_date',$today)
                 ->get();
 
             $data = $controls->toArray();
@@ -317,7 +349,7 @@ class LunchController extends Controller
 
         // 取得前端送過來的訂單資料
         $order_date = $request->input('order_date'); 
-        $seat_number = $request->input('seat_number'); 
+        $user_id = $request->input('user_id'); 
         $bubbletea_name = $request->input('bubbletea_name'); 
         $bubbletea_price     = $request->input('bubbletea_price'); 
 
@@ -325,7 +357,7 @@ class LunchController extends Controller
             // 使用 Eloquent create() 插入資料
             $bubbleteaorder = BubbleteaOrders::create([
                 'order_date'  => $order_date,
-                'seat_number' => $seat_number,
+                'user_id' => $user_id,
                 'bubbletea_name'     => $bubbletea_name,
                 'bubbletea_price'    => $bubbletea_price,
                 'user_ip'     => $user_ip,
@@ -348,26 +380,29 @@ class LunchController extends Controller
 
     public function getBubbleteaorders(Request $request)
     {
-        $user_ip = $request->ip();
-        // 取 IP 最後一段
-        $ip_parts = explode('.', $user_ip);
-        $last_digit = intval(end($ip_parts));
-
-        // user_no = 最後一碼 - 1
-        $user_no = $last_digit - 1;
-        $seat_number = $request->input('seat_number') ?? $user_no; // 使用 input() 來取得 seat_number
+        $user_id = $request->input('user_id'); // 使用 input() 來取得 seat_number
         $order_date = $request->input('order_date') ?? Carbon::today()->toDateString(); // 使用 input() 來取得 order_date
         $data = [];
 
         try {
-            $bubbleteaorders = BubbleteaOrders::select('*')
-                ->where('order_date', $order_date)
-                ->get();
+            $bubbleteaorders = BubbleteaOrders::select(
+                'bubbletea_orders.id as bubbletea_order_id',
+                'bubbletea_orders.order_date',
+                'bubbletea_orders.user_id',
+                'bubbletea_orders.bubbletea_name',
+                'bubbletea_orders.bubbletea_price',
+                'bubbletea_orders.is_paid',
+                'bubbletea_orders.delete_flag',
+                'users.seat_number'
+            )
+            ->leftJoin('users', 'bubbletea_orders.user_id', '=', 'users.id')
+            ->where('bubbletea_orders.order_date', $order_date)
+            ->get();
 
             $data = $bubbleteaorders->toArray();
 
             // 過濾出指定座位號的訂單
-             $userBubbleteaOrders = $seat_number ? $bubbleteaorders->where('seat_number', $seat_number)->values() : $data;
+             $userBubbleteaOrders = $user_id ? $bubbleteaorders->where('user_id', $user_id)->values() : $data;
 
             return response()->json([
                 'success' => true,
@@ -386,10 +421,10 @@ class LunchController extends Controller
     public function bubbleteaorderpaid(Request $request)
     {
         // 取得前端送過來的訂單資料
-        $bubbletea_order_id = $request->input('bubbletea_order_id'); 
+        $bubbletea_order_id = (int) $request->input('bubbletea_order_id'); 
         $is_paid = $request->input('is_paid'); 
         try {
-            $bubbleteaorder = BubbleteaOrders::where('bubbletea_order_id', $bubbletea_order_id)->first();
+            $bubbleteaorder = BubbleteaOrders::find($bubbletea_order_id);
             // 如果找不到該訂單，返回錯誤
             if (!$bubbleteaorder) {
                 return response()->json([

@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Users;
+use App\Models\Foods;
+use App\Models\Shops;
+
 class Review extends Model
 {
     protected $table = 'reviews';
-    protected $primaryKey = 'review_id';
 
     // created_at 和 updated_at 欄位存在 DB, Laravel 可直接使用
     public $timestamps = true;
@@ -24,16 +27,16 @@ class Review extends Model
     // 關聯
     public function user()
     {
-        return $this->belongsTo(Users::class, 'user_id', 'user_id');
+        return $this->belongsTo(Users::class, 'user_id', 'id');
     }
 
     public function food()
     {
-        return $this->belongsTo(Foods::class, 'food_id', 'food_id');
+        return $this->belongsTo(Foods::class, 'food_id', 'id');
     }
 
     public function shop()
     {
-        return $this->belongsTo(Shops::class, 'shop_id', 'shop_id');
+        return $this->belongsTo(Shops::class, 'shop_id', 'id');
     }
 }

@@ -7,12 +7,13 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 
+use App\Models\Users;
+
 class AuthUsers extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'auth_users';
-    protected $primaryKey = 'id';
     public $incrementing = true; // 如果 id 是自增
     protected $keyType = 'int';
 
@@ -39,7 +40,7 @@ class AuthUsers extends Authenticatable
      */
     public function user()
     {
-        return $this->belongsTo(Users::class, 'user_id', 'user_id'); 
+        return $this->belongsTo(Users::class, 'user_id', 'id'); 
         // 第一個 user_id 是 auth_users.user_id
         // 第二個 user_id 是 users.user_id
     }

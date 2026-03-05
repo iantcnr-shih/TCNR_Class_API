@@ -9,11 +9,11 @@ class ManagerControl extends Model
     protected $table = 'manager_control'; // 資料表的名稱
 
     // 設定主鍵
-    protected $primaryKey = 'row_id';
+    protected $primaryKey = 'id';
 
     // 自動管理的時間戳
     public $timestamps = true; // 自動尋找 created_at 和 updated_at 欄位
 
     // 如果資料表有特定的欄位名稱，將其設定在 $fillable 或 $guarded
-    protected $fillable = ['row_id', 'c_date', 'c_title', 'c_value', 'c_remark'];
+    protected $fillable = ['id', 'c_date', 'c_title', 'c_value', 'c_remark'];
 }

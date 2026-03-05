@@ -14,6 +14,7 @@ use App\Models\UserRoles;
 use App\Models\AuthUsers;
 use App\Models\UsersView;
 use App\Models\Skills;
+use App\Models\Positions;
 use Carbon\Carbon;
 
 class AuthController extends Controller
@@ -40,7 +41,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email|unique:auth_users,email',
-            'password' => 'required|min:6',
+            'password' => 'required|min:4',
             'code' => 'required'
         ], [
             'email.unique' => '此 Email 已被註冊',
@@ -273,6 +274,7 @@ class AuthController extends Controller
         if ($user) {
             $user->load('roles');
             $userData = [
+                'user_id' => $user->id,
                 'user_name' => $user->user_name,
                 'seat_number' => $user->seat_number,
                 'roles' => $user->roles->pluck('role_name'),
@@ -337,6 +339,44 @@ class AuthController extends Controller
         ]);
     }
 
+    public function updateAvatar(Request $request)
+    {
+        $user = $request->user(); // 透過 Sanctum 取得登入使用者
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => '使用者未登入'
+            ], 401);
+        }
+
+        $userdata = Users::where('id', $user->user_id)->first();
+
+        // 驗證欄位
+        $validated = $request->validate([
+            'avatar' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $userdata->avatar = $validated['avatar'] ?? $userdata->avatar;
+
+            $userdata->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => '個人資料更新成功',
+                'avatar' => $userdata->avatar
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("UpdateProfile error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => '更新個人資料失敗，請稍後再試'
+            ], 500);
+        }
+    }
+
     public function updateprofile(Request $request)
     {
         $user = $request->user(); // 透過 Sanctum 取得登入使用者
@@ -348,13 +388,15 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $userdata = Users::where('user_id', $user->user_id)->first();
+        $userdata = Users::where('id', $user->user_id)->first();
 
         // 驗證欄位
         $validated = $request->validate([
             'profiledata.user_name' => 'required|string|max:20',
             'profiledata.user_en_name' => 'nullable|string|max:25',
             'profiledata.user_nick_name' => 'nullable|string|max:20',
+            'profiledata.position_id' => 'nullable|integer',
+            'profiledata.user_title' => 'nullable|string|max:30',
             'profiledata.seat_number' => 'required|integer|min:1',
             'profiledata.phone' => 'nullable|string|max:15',
             'profiledata.github' => 'nullable|url|max:80',
@@ -368,6 +410,8 @@ class AuthController extends Controller
             $userdata->user_en_name = $profileData['user_en_name'] ?? $userdata->user_en_name;
             $userdata->seat_number = $profileData['seat_number'] ?? $userdata->seat_number;
             $userdata->user_nick_name = $profileData['user_nick_name'] ?? $userdata->user_nick_name;
+            $userdata->position_id = $profileData['position_id'] ?? $userdata->position_id;
+            $userdata->user_title = $profileData['user_title'] ?? $userdata->user_title;
             $userdata->phone = $profileData['phone'] ?? $userdata->phone;
             $userdata->github = $profileData['github'] ?? $userdata->github;
             $userdata->linkedin = $profileData['linkedin'] ?? $userdata->linkedin;
@@ -409,6 +453,25 @@ class AuthController extends Controller
         }
     }
 
+    public function GetPositions(Request $request)
+    {
+        try {
+            $AllPositions = Positions::where('delete_flag',0)
+                            ->get();
+        
+            return response()->json([
+                'success' => true,
+                'AllPositions' => $AllPositions,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function updateUserSkills(Request $request)
     {
         $user = $request->user();
@@ -419,7 +482,7 @@ class AuthController extends Controller
         ]);
 
         // 更新使用者 skills
-        $userdata = Users::where('user_id', $user->user_id)->first();
+        $userdata = Users::where('id', $user->user_id)->first();
         $userdata->skills = $validated['skillsdata']['skills'];
         $userdata->save();
 
@@ -505,7 +568,7 @@ class AuthController extends Controller
 
         // Step 7：// 重新抓使用者，確保 roles 也抓到
         $userModel = Users::with('roles')
-            ->where('user_id', $user->user_id) // 用剛設定的 seat_number
+            ->where('id', $user->user_id) // 用剛設定的 seat_number
             ->first();
 
         $userData = null;
@@ -535,7 +598,16 @@ class AuthController extends Controller
             'new_password' => 'required|string|min:4',
             'confirm_password' => 'required|string|min:4',
         ]);
+
+        // 驗證舊密碼
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => '舊密碼錯誤',
+            ], 422);
+        }
         
+        // 驗證新密碼和確認密碼是否一致
         if ($request->new_password !== $request->confirm_password) {
             return response()->json([
                 'success' => false,
@@ -551,5 +623,32 @@ class AuthController extends Controller
             'success' => true,
             'message' => '密碼更新成功',
         ]);
+    }
+
+    public function getAllStudents()
+    {
+        try {
+            $AllStudents = Users::with('position:id,position_name')
+                ->select('id as user_id', 'seat_number', 'avatar','user_name', 'user_en_name', 'user_nick_name', 'position_id', 'user_title', 'github')
+                ->get()
+                ->map(function($student) {
+                    return [
+                        'user_id' => $student->user_id,
+                        'seat_number' => $student->seat_number,
+                        'avatar' => $student->avatar,
+                        'user_name' => $student->user_name,
+                        'user_en_name' => $student->user_en_name,
+                        'user_nick_name' => $student->user_nick_name,
+                        'position_name' => $student->position->position_name ?? null, // 防止 null
+                        'user_title' => $student->user_title,
+                        'github' => $student->github,
+                    ];
+                });
+
+            return response()->json($AllStudents, 200);
+        } catch (\Exception $e) {
+            Log::error('GetAllStudents Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Server error'], 500);
+        }
     }
 }

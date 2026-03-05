@@ -14,14 +14,14 @@ class ShopReviewController extends Controller
     public function reviewSummary()
     {
         $shops = DB::table('shops as s')
-            ->leftJoin('reviews as r', 'r.shop_id', '=', 's.shop_id')
+            ->leftJoin('reviews as r', 'r.shop_id', '=', 's.id')
             ->select([
-                's.shop_id',
+                's.id as shop_id',
                 's.shop_name',
                 's.shop_url',
 
                 DB::raw('ROUND(AVG(r.rating), 2) as avg_rating_all'),
-                DB::raw('COUNT(r.review_id) as review_count_all'),
+                DB::raw('COUNT(r.id) as review_count_all'),
 
                 DB::raw('ROUND(AVG(CASE WHEN r.food_id IS NULL THEN r.rating END), 2) as avg_shop_rating'),
                 DB::raw('SUM(CASE WHEN r.food_id IS NULL THEN 1 ELSE 0 END) as shop_review_count'),
@@ -29,7 +29,7 @@ class ShopReviewController extends Controller
                 DB::raw('ROUND(AVG(CASE WHEN r.food_id IS NOT NULL THEN r.rating END), 2) as avg_food_rating'),
                 DB::raw('SUM(CASE WHEN r.food_id IS NOT NULL THEN 1 ELSE 0 END) as food_review_count'),
             ])
-            ->groupBy('s.shop_id', 's.shop_name', 's.shop_url')
+            ->groupBy('s.id', 's.shop_name', 's.shop_url')
             ->orderBy(DB::raw('AVG(r.rating) IS NULL'))   // 無評論排最後
             ->orderByDesc(DB::raw('AVG(r.rating)'))       // 平均分高的在前
             ->get();

@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Users extends Model
 {
     protected $table = 'users';
-    protected $primaryKey = 'user_id'; // 如果主鍵不是 id
     public $timestamps = false;
-    protected $fillable = ['seat_number', 'user_name', 'user_en_name', 'user_nick_name', 'bio', 'phone', 'github', 'linkedin', 'skills'];
+    protected $fillable = ['seat_number', 'avatar', 'user_name', 'user_en_name', 'user_nick_name', 'position_id', 'user_title', 'bio', 'phone', 'github', 'linkedin', 'skills'];
 
     public function authAccounts()
     {
@@ -25,5 +24,10 @@ class Users extends Model
             'user_id',         // user 外鍵在 pivot
             'role_id'          // role 外鍵在 pivot
         );
+    }
+
+    public function position()
+    {
+        return $this->belongsTo(Positions::class, 'position_id');
     }
 }

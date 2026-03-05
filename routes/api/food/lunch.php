@@ -11,6 +11,7 @@ Route::post('/addorder', [LunchController::class, 'addorder']);
 Route::get('/getOrders', [LunchController::class, 'getOrders']);
 Route::post('/orderpaid', [LunchController::class, 'orderpaid']);
 Route::middleware(['auth:sanctum'])->get('/getUserHistoryOrders', [LunchController::class, 'getUserHistoryOrders']);
+Route::middleware(['auth:sanctum'])->get('/getUserHistoryBubbleteaOrders', [LunchController::class, 'getUserHistoryBubbleteaOrders']);
 Route::get('/getManagerControl', [LunchController::class, 'getManagerControl']);
 Route::post('/addbubbleteaorder', [LunchController::class, 'addbubbleteaorder']);
 Route::get('/getBubbleteaorders', [LunchController::class, 'getBubbleteaorders']);
