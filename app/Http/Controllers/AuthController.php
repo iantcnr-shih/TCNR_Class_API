@@ -174,12 +174,24 @@ class AuthController extends Controller
     // 登入
     public function login(Request $request)
     {
-        // 1️⃣ 驗證必填欄位（帳號、密碼、captcha token）
-        $request->validate([
+        // // 1️⃣ 驗證必填欄位（帳號、密碼、captcha token）
+        // $request->validate([
+        //     'email' => 'required|email',
+        //     'password' => 'required',
+        //     'g-recaptcha-response' => 'required|captcha', // <- 直接用 captcha 驗證
+        // ]);
+
+        $rules = [
             'email' => 'required|email',
             'password' => 'required',
-            'g-recaptcha-response' => 'required|captcha', // <- 直接用 captcha 驗證
-        ]);
+        ];
+
+        if (!app()->environment('local')) {
+            $rules['g-recaptcha-response'] = 'required|captcha';
+        }
+        // 如果是 local 環境測試，不驗證 captcha
+
+        $request->validate($rules);
 
         // 3️⃣ 驗證帳號密碼
         $authuser = AuthUsers::where('email', $request->email)->first();
