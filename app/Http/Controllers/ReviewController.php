@@ -93,14 +93,14 @@ class ReviewController extends Controller
         try {
             $payload = $request->only(['shop_id', 'food_id', 'rating', 'comment']);
 
-            $authUser = $request->user();
-            if (!$authUser) {
+            $user = $request->user();
+
+            if (!$user) {
                 return response()->json([
                     'message' => 'Unauthenticated'
                 ], 401);
             }
-            
-            $user = $authUser->user;
+
 
             $newId = DB::table('reviews')->insertGetId([
                 'shop_id' => $payload['shop_id'],
