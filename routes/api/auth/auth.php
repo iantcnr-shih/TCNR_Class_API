@@ -20,3 +20,4 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/GetAllStudents', [AuthController::class, 'GetAllStudents']);
 
 
+

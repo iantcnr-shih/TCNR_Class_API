@@ -4,13 +4,13 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Validator;
+use Illuminate\Contracts\Validation\Validator;
 
 class StoreReviewRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // 先不做登入驗證
+        return $this->user() !== null;
     }
 
     protected function prepareForValidation(): void
@@ -19,14 +19,17 @@ class StoreReviewRequest extends FormRequest
         if ($this->has('food_id') && $this->input('food_id') === '') {
             $this->merge(['food_id' => null]);
         }
+
+        if ($this->has('comment') && $this->input('comment') === '') {
+            $this->merge(['comment' => null]);
+        }
     }
 
     public function rules(): array
     {
         return [
-            'shop_id' => ['required', 'integer', 'exists:shops,shop_id'],
-            'food_id' => ['nullable', 'integer', 'exists:foods,food_id'],
-            'user_id' => ['required', 'integer', 'exists:users,user_id'],
+            'shop_id' => ['required', 'integer', 'exists:shops,id'],
+            'food_id' => ['nullable', 'integer', 'exists:foods,id'],
             'rating'  => ['required', 'integer', 'min:1', 'max:5'],
             'comment' => ['nullable', 'string'],
         ];
@@ -58,6 +61,7 @@ class StoreReviewRequest extends FormRequest
             if ((int) $foodShopId !== (int) $shopId) {
                 $validator->errors()->add('food_id', 'food_id does not belong to the given shop_id');
             }
+
         });
     }
 }
