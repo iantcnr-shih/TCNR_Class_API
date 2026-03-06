@@ -1,3 +1,4 @@
+<?php
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ShopReviewController;
 use Illuminate\Support\Facades\Route;
