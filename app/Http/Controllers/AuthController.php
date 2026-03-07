@@ -628,22 +628,17 @@ class AuthController extends Controller
     public function getAllStudents()
     {
         try {
-            $AllStudents = Users::with('position:id,position_name')
-                ->select('id as user_id', 'seat_number', 'avatar','user_name', 'user_en_name', 'user_nick_name', 'position_id', 'user_title', 'github')
-                ->get()
-                ->map(function($student) {
-                    return [
-                        'user_id' => $student->user_id,
-                        'seat_number' => $student->seat_number,
-                        'avatar' => $student->avatar,
-                        'user_name' => $student->user_name,
-                        'user_en_name' => $student->user_en_name,
-                        'user_nick_name' => $student->user_nick_name,
-                        'position_name' => $student->position->position_name ?? null, // 防止 null
-                        'user_title' => $student->user_title,
-                        'github' => $student->github,
-                    ];
-                });
+            $AllStudents = UsersView::where('seat_number', '!=', '')
+                ->whereNotNull('seat_number')
+                ->get();
+
+            foreach ($AllStudents as $student) {
+                $skillIds = $student->skills 
+                    ? array_map('intval', explode(',', $student->skills)) 
+                    : [];
+
+                $student->skills = $skillIds;
+            }
 
             return response()->json($AllStudents, 200);
         } catch (\Exception $e) {

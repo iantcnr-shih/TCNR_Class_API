@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/getAllShops', [LunchController::class, 'getAllShops']);
 Route::get('/getShops', [LunchController::class, 'getShops']);
+Route::get('/GetAllcategories', [LunchController::class, 'GetAllcategories']);
 Route::get('/getCategories', [LunchController::class, 'getCategories']);
+Route::get('/GetAllfoods', [LunchController::class, 'GetAllfoods']);
 Route::get('/getFoods', [LunchController::class, 'getFoods']);
 Route::post('/addorder', [LunchController::class, 'addorder']);
 Route::get('/getOrders', [LunchController::class, 'getOrders']);
@@ -26,4 +28,23 @@ Route::post('/updateOrderType', [LunchController::class, 'updateOrderType']);
 Route::post('/updateOrderRound', [LunchController::class, 'updateOrderRound']);
 
 Route::get('/GetAlloders', [LunchController::class, 'GetAlloders']);
+
+Route::post('/changeIsShopActive', [LunchController::class, 'changeIsShopActive']);
+Route::post('/changeIsCategoryActive', [LunchController::class, 'changeIsCategoryActive']);
+Route::post('/changeIsFoodActive', [LunchController::class, 'changeIsFoodActive']);
+
+Route::post('/addShop', [LunchController::class, 'addShop']);
+Route::post('/addCategory', [LunchController::class, 'addCategory']);
+Route::post('/addFood', [LunchController::class, 'addFood']);
+
+
+
+Route::post('/updateShop', [LunchController::class, 'updateShop']);
+Route::post('/updateCategory', [LunchController::class, 'updateCategory']);
+Route::post('/updateFood', [LunchController::class, 'updateFood']);
+
+Route::post('/deleteShop', [LunchController::class, 'deleteShop']);
+Route::post('/deleteCategory', [LunchController::class, 'deleteCategory']);
+Route::post('/deleteFood', [LunchController::class, 'deleteFood']);
+
 

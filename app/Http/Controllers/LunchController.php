@@ -1,7 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\WdayShopView;
 use App\Models\Shops;
@@ -13,13 +15,14 @@ use App\Models\OrdersView;
 use App\Models\ManagerControl;
 use Illuminate\Support\Facades\Log;
 
+
 class LunchController extends Controller
 {
     public function getAllShops(Request $request)
     {
         try {
             // 查詢所有店家：
-            $AllShops = Shops::select('id as shop_id', 'shop_name', 'shop_url')
+            $AllShops = Shops::select('id as shop_id', 'shop_name', 'shop_phone', 'shop_url', 'remark', 'is_active', 'delete_flag')
                 ->get();
 
             return response()->json([
@@ -50,22 +53,28 @@ class LunchController extends Controller
                 ->first();
             if ($selectShop) {
                 // 有指定今日店家
-                $firstShops = Shops::select('id as shop_id', 'shop_name')
+                $firstShops = Shops::select('id as shop_id', 'shop_name', 'is_active')
                     ->where('id', $selectShop->c_value)
+                    ->where('is_active', 1)
+                    ->where('delete_flag', 0)
                     ->get();
             } else {
-                // 沒指定 → 用星期店家
+                // 沒指定 → 用星期店家W
                 $firstShops = WdayShopView::select('shop_id', 'shop_name')
                     ->where('wday', $wday)
                     ->whereNotNull('shop_id')
+                    ->where('is_active', 1)
+                    ->where('delete_flag', 0)
                     ->get();
             }
 
             $data = $firstShops->isEmpty() ? [] : $firstShops->toArray();
 
             // 第二個查詢：固定 shop_url
-            $secondShops = Shops::select('id as shop_id', 'shop_name')
+            $secondShops = Shops::select('id as shop_id', 'shop_name', 'is_active')
                 ->whereIn('shop_url', ['jiaxiang', 'zhongxing'])
+                ->where('is_active', 1)
+                ->where('delete_flag', 0)
                 ->get();
 
             // 合併兩筆資料
@@ -84,6 +93,26 @@ class LunchController extends Controller
         }
     }
 
+    public function GetAllcategories(Request $request)
+    {
+        try {
+            // 查詢所有餐點樣式：
+            $Allcategories = MenuCategories::select('id as menu_category_id','shop_id', 'category_name', 'is_active', 'delete_flag')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'Allcategories' => $Allcategories
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getCategories(Request $request)
     {
         // 取得 shop_id
@@ -91,8 +120,11 @@ class LunchController extends Controller
         $data = [];
 
         try {
-            $categories = MenuCategories::select('id as menu_category_id','shop_id', 'category_number', 'category_name')
+            $categories = MenuCategories::select('id as menu_category_id','shop_id', 'category_name', 'is_active')
+                // ->where('is_active', 1)
+                ->where('delete_flag', 0)
                 ->where('shop_id', $shop_id)
+                ->orderBy('id', 'asc') // 依 id 升序排列
                 ->get();
 
             $data = $categories->toArray();
@@ -110,6 +142,26 @@ class LunchController extends Controller
         }
     }
 
+    public function GetAllfoods(Request $request)
+    {
+        try {
+            // 查詢所有餐點樣式：
+            $Allfoods =Foods::select('id as food_id', 'menu_category_id', 'food_name', 'price', 'is_active', 'delete_flag')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'Allfoods' => $Allfoods
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getFoods(Request $request)
     {
         // 取得 category_id
@@ -117,8 +169,10 @@ class LunchController extends Controller
         $data = [];
 
         try {
-            $foods = Foods::select('id as food_id', 'menu_category_id', 'food_name', 'price')
+            $foods = Foods::select('id as food_id', 'menu_category_id', 'food_name', 'price', 'is_active')
                 ->where('menu_category_id', $menu_category_id)
+                // ->where('is_active', 1)
+                ->where('delete_flag', 0)
                 ->get();
 
             $data = $foods->toArray();
@@ -498,7 +552,11 @@ class LunchController extends Controller
                         ->whereNotNull('shop_id')
                         ->first();
 
-                    $thisday_shop_id->c_value = $shop?->shop_id;
+                    if ($shop) {
+                        $thisday_shop_id->c_value = $shop->shop_id;
+                    } else {
+                        $thisday_shop_id->c_value = 0; // 或者其他預設值
+                    }
                     $thisday_shop_id->c_date = $today;
                     $thisday_shop_id->save();
                 }
@@ -553,7 +611,11 @@ class LunchController extends Controller
                 $shop = WdayShopView::where('wday', $wday)
                     ->whereNotNull('shop_id')
                     ->first();
-                $thisday_shop_id->c_value = $shop?->shop_id;
+                if ($shop) {
+                    $thisday_shop_id->c_value = $shop->shop_id;
+                } else {
+                    $thisday_shop_id->c_value = 0; // 或者其他預設值
+                }
                 $thisday_shop_id->c_date = $today;
                 $thisday_shop_id->save();
             }
@@ -820,5 +882,452 @@ class LunchController extends Controller
             ], 500);
         }
     }
+
+    public function changeIsShopActive(Request $request)
+    {
+        $shop_id = $request->input('shop_id');
+        $enabled = $request->input('enabled');
+
+        try {
+            $shop = Shops::where('id', $shop_id)->first();
+            
+            if (!$shop) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'shop not found'
+                ], 404);
+            }
+
+            // 轉布林
+            $boolEnabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+
+            $shop->is_active = $boolEnabled;
+            $shop->save();
+
+            return response()->json([
+                'success' => true,
+                'IsShopActive' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function changeIsCategoryActive(Request $request)
+    {
+        $menu_category_id = $request->input('menu_category_id');
+        $enabled = $request->input('enabled');
+
+        try {
+            $category = MenuCategories::where('id', $menu_category_id)->first();
+            
+            if (!$category) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'category not found'
+                ], 404);
+            }
+
+            // 轉布林
+            $boolEnabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+
+            $category->is_active = $boolEnabled;
+            $category->save();
+
+            return response()->json([
+                'success' => true,
+                'IsCategoryActive' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
     
+    public function changeIsFoodActive(Request $request)
+    {
+        $food_id = $request->input('food_id');
+        $enabled = $request->input('enabled');
+
+        try {
+            $food = Foods::where('id', $food_id)->first();
+            
+            if (!$food) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'food not found'
+                ], 404);
+            }
+
+            // 轉布林
+            $boolEnabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+
+            $food->is_active = $boolEnabled;
+            $food->save();
+
+            return response()->json([
+                'success' => true,
+                'IsFoodActive' => $boolEnabled
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+    
+    public function addShop(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'shop_name' => 'required|unique:shops,shop_name',
+            'shop_phone' => 'nullable',
+            'remark' => 'nullable'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'shop_name already exists'
+            ], 400);
+        }
+
+        try {
+            $shop = new Shops();
+            $shop->shop_name = $request->shop_name;
+            $shop->shop_phone = $request->shop_phone;
+            $shop->remark = $request->remark;
+            $shop->is_active = 1;
+            $shop->delete_flag = 0;
+
+            $shop->save();
+
+            return response()->json([
+                'success' => true,
+                'shop' => $shop
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateShop(Request $request)
+    {
+        // 先抓 shop_id
+        $shop_id = $request->shop_id;
+
+        $validator = Validator::make($request->all(), [
+            'shop_id' => 'required|exists:shops,id', // 確保要更新的店家存在
+            'shop_name' => 'required|unique:shops,shop_name,' . $request->shop_id . ',id',
+            'shop_phone' => 'nullable',
+            'remark' => 'nullable',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        try {
+            // 抓到現有店家
+            $shop = Shops::where('id', $shop_id)->first();
+
+            $shop->shop_name = $request->shop_name;
+            $shop->shop_phone = $request->shop_phone;
+            $shop->remark = $request->remark;
+
+            $shop->save();
+
+            return response()->json([
+                'success' => true,
+                'shop' => $shop
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function deleteShop(Request $request)
+    {
+        $shop_id = $request->input('shop_id');
+
+        try {
+            $shop = Shops::where('id', $shop_id)->first();
+            
+            if (!$shop) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'shop not found'
+                ], 404);
+            }
+
+            $shop->delete_flag = 1;
+            $shop->save();
+
+            return response()->json([
+                'success' => true,
+                'deleteShopID' => $shop_id
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function addCategory(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'shop_id' => 'required|exists:shops,id',
+            'category_name' => [
+                'required',
+                Rule::unique('menu_categories')->where(fn($query) => 
+                    $query->where('shop_id', $request->shop_id)
+                ),
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'category_name already exists'
+            ], 400);
+        }
+
+        try {
+            $category = MenuCategories::create([
+                'shop_id' => $request->shop_id,
+                'category_name' => $request->category_name,
+                'is_active' => 1,
+                'delete_flag' => 0
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'category' => $category
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateCategory(Request $request)
+    {
+        // 先抓 shop_id
+        $shop_id = $request->shop_id;
+        $menu_category_id = $request->menu_category_id;
+
+        $validator = Validator::make($request->all(), [
+            'shop_id' => 'required|exists:shops,id',
+            'menu_category_id' => 'required|exists:menu_categories,id',
+            'category_name' => [
+                'required',
+                Rule::unique('menu_categories')
+                    ->where(fn ($query) => $query->where('shop_id', $request->shop_id))
+                    ->ignore($request->menu_category_id, 'id'),
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        try {
+            // 抓到現有店家
+            $category = MenuCategories::where('id', $menu_category_id)->first();
+
+            $category->shop_id = $request->shop_id;
+            $category->category_name = $request->category_name;
+
+            $category->save();
+
+            return response()->json([
+                'success' => true,
+                'category' => $category
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function deleteCategory(Request $request)
+    {
+        $menu_category_id = $request->input('menu_category_id');
+
+        try {
+            $category = MenuCategories::where('id', $menu_category_id)->first();
+            
+            if (!$category) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'category not found'
+                ], 404);
+            }
+
+            $category->delete_flag = 1;
+            $category->save();
+
+            return response()->json([
+                'success' => true,
+                'MenuCategoryID' => $menu_category_id
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function addFood(Request $request)
+    {
+        Log::debug($request->all());
+        $validator = Validator::make($request->all(), [
+            'menu_category_id' => 'required|exists:menu_categories,id',
+            'food_name' => [
+                'required',
+                Rule::unique('foods')->where(fn($query) => 
+                    $query->where('menu_category_id', $request->menu_category_id)
+                ),
+            ],
+            'price' => 'required|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'food_name already exists'
+            ], 400);
+        }
+
+        try {
+            $food = Foods::create([
+                'menu_category_id' => $request->menu_category_id,
+                'food_name' => $request->food_name,
+                'price' => $request->price,
+                'is_active' => 1,
+                'delete_flag' => 0
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'food' => $food
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function updateFood(Request $request)
+    {
+        // 先抓 menu_ca_id
+        $menu_category_id = $request->menu_category_id;
+        $food_id = $request->food_id;
+
+        $validator = Validator::make($request->all(), [
+            'menu_category_id' => 'required|exists:menu_categories,id',
+            'food_id' => 'required|exists:foods,id',
+            'food_name' => [
+                'required',
+                Rule::unique('foods')
+                    ->where(fn ($query) => $query->where('menu_category_id', $request->menu_category_id))
+                    ->ignore($request->food_id, 'id'),
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        try {
+            // 抓到現有店家
+            $food = Foods::where('id', $food_id)->first();
+
+            $food->menu_category_id = $request->menu_category_id;
+            $food->food_name = $request->food_name;
+            $food->price = $request->price;
+
+            $food->save();
+
+            return response()->json([
+                'success' => true,
+                'food' => $food
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function deleteFood(Request $request)
+    {
+        $food_id = $request->input('food_id');
+
+        try {
+            $food = Foods::where('id', $food_id)->first();
+            
+            if (!$food) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'food not found'
+                ], 404);
+            }
+
+            $food->delete_flag = 1;
+            $food->save();
+
+            return response()->json([
+                'success' => true,
+                'foodID' => $food
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
 }

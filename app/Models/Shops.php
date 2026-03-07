@@ -12,5 +12,5 @@ class Shops extends Model
     public $timestamps = false; // 這樣 Eloquent 就不會自動尋找 created_at 和 updated_at 欄位
 
     // 如果資料表有特定的欄位名稱，將其設定在 $fillable 或 $guarded
-    protected $fillable = ['shop_name', 'shop_url'];
+    protected $fillable = ['shop_name', 'shop_phone', 'shop_url', 'remark', 'is_active', 'delete_flag'];
 }
