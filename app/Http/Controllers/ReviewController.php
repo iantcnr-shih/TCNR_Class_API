@@ -91,12 +91,21 @@ class ReviewController extends Controller
     public function store(StoreReviewRequest $request)
     {
         try {
-            $payload = $request->only(['shop_id', 'food_id', 'user_id', 'rating', 'comment']);
+            $payload = $request->only(['shop_id', 'food_id', 'rating', 'comment']);
+
+            $user = $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+
 
             $newId = DB::table('reviews')->insertGetId([
                 'shop_id' => $payload['shop_id'],
                 'food_id' => $payload['food_id'] ?? null,
-                'user_id' => $payload['user_id'],
+                'user_id' => $user->id,
                 'rating'  => $payload['rating'],
                 'comment' => $payload['comment'] ?? null,
             ]);
