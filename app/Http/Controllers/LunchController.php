@@ -258,7 +258,7 @@ class LunchController extends Controller
         try {
             $orders = OrdersView::where('order_date', $order_date)
                 ->where('order_type', $order_type)
-                ->where('delete_flag', 0)
+                // ->where('delete_flag', 0)
                 // ->where('order_round', $order_round)
                 ->get();
 
@@ -882,6 +882,35 @@ class LunchController extends Controller
             ], 500);
         }
     }
+    
+    public function GetAllbubbleteaorders(Request $request)
+    {
+        try {
+            $orders = BubbleteaOrders::select(
+                'bubbletea_orders.id as bubbletea_order_id',
+                'bubbletea_orders.order_date',
+                'users.seat_number',
+                'bubbletea_orders.bubbletea_name',
+                'bubbletea_orders.bubbletea_price',
+                'bubbletea_orders.is_paid',
+                'bubbletea_orders.delete_flag'
+            )
+            ->join('users', 'bubbletea_orders.user_id', '=', 'users.id')
+            ->get();
+        
+            return response()->json([
+                'success' => true,
+                'Allbubbleteaorders' => $orders,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function changeIsShopActive(Request $request)
     {
@@ -1321,6 +1350,142 @@ class LunchController extends Controller
             return response()->json([
                 'success' => true,
                 'foodID' => $food
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    
+    public function updateOrder(Request $request)
+    {
+        // 先抓 order_id
+        $order_id = $request->order_id;
+
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+            'is_paid' => 'required|integer|in:0,1',
+            'remark' => 'nullable',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        try {
+            $order = Orders::where('id', $order_id)->first();
+            $order->is_paid = $request->is_paid;
+            $order->remark = $request->remark;
+            $order->save();
+
+            return response()->json([
+                'success' => true,
+                'order' => $order
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function deleteOrder(Request $request)
+    {
+        $order_id = $request->input('order_id');
+
+        try {
+            $order = Orders::where('id', $order_id)->first();
+            
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'order not found'
+                ], 404);
+            }
+
+            $order->delete_flag = 1;
+            $order->save();
+
+            return response()->json([
+                'success' => true,
+                'orderID' => $order
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    
+    public function updateBubbleteaOrder(Request $request)
+    {
+        // 先抓 bubbletea_order_id
+        $bubbletea_order_id = $request->bubbletea_order_id;
+
+        $validator = Validator::make($request->all(), [
+            'bubbletea_order_id' => 'required|exists:bubbletea_orders,id',
+            'bubbletea_name' => 'required|string|min:1',
+            'is_paid' => 'required|integer|in:0,1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        try {
+            $bubbletea_order = BubbleteaOrders::where('id', $bubbletea_order_id)->first();
+            $bubbletea_order->is_paid = $request->is_paid;
+            $bubbletea_order->bubbletea_name = $request->bubbletea_name;
+            $bubbletea_order->save();
+
+            return response()->json([
+                'success' => true,
+                'bubbleteaOrder' => $bubbletea_order
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function deleteBubbleteaOrder(Request $request)
+    {
+        $bubbletea_order_id = $request->input('bubbletea_order_id');
+
+        try {
+            $bubbletea_order = BubbleteaOrders::where('id', $bubbletea_order_id)->first();
+            
+            if (!$bubbletea_order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'bubbleteaOrder not found'
+                ], 404);
+            }
+
+            $bubbletea_order->delete_flag = 1;
+            $bubbletea_order->save();
+
+            return response()->json([
+                'success' => true,
+                'bubbleteaOrderID' => $bubbletea_order_id
             ]);
 
         } catch (\Exception $e) {

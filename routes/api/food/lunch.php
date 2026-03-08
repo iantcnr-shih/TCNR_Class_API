@@ -28,6 +28,7 @@ Route::post('/updateOrderType', [LunchController::class, 'updateOrderType']);
 Route::post('/updateOrderRound', [LunchController::class, 'updateOrderRound']);
 
 Route::get('/GetAlloders', [LunchController::class, 'GetAlloders']);
+Route::get('/GetAllbubbleteaorders', [LunchController::class, 'GetAllbubbleteaorders']);
 
 Route::post('/changeIsShopActive', [LunchController::class, 'changeIsShopActive']);
 Route::post('/changeIsCategoryActive', [LunchController::class, 'changeIsCategoryActive']);
@@ -46,5 +47,12 @@ Route::post('/updateFood', [LunchController::class, 'updateFood']);
 Route::post('/deleteShop', [LunchController::class, 'deleteShop']);
 Route::post('/deleteCategory', [LunchController::class, 'deleteCategory']);
 Route::post('/deleteFood', [LunchController::class, 'deleteFood']);
+
+Route::post('/updateOrder', [LunchController::class, 'updateOrder']);
+Route::post('/deleteOrder', [LunchController::class, 'deleteOrder']);
+
+Route::post('/updateBubbleteaOrder', [LunchController::class, 'updateBubbleteaOrder']);
+Route::post('/deleteBubbleteaOrder', [LunchController::class, 'deleteBubbleteaOrder']);
+
 
 
