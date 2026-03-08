@@ -13,6 +13,7 @@ use App\Models\Orders;
 use App\Models\BubbleteaOrders;
 use App\Models\OrdersView;
 use App\Models\ManagerControl;
+use App\Models\WdayShop;
 use Illuminate\Support\Facades\Log;
 
 
@@ -1486,6 +1487,59 @@ class LunchController extends Controller
             return response()->json([
                 'success' => true,
                 'bubbleteaOrderID' => $bubbletea_order_id
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error, check log'
+            ], 500);
+        }
+    }
+
+    public function GetWdayShops(Request $request)
+    {
+        try {
+            $schedules = WdayShop::with('shop')->get();
+            return response()->json([
+                'success'   => true,
+                'schedules' => $schedules,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // 改成接收整個 list 一次批量更新：
+    public function updateWdayShops(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'schedule'           => 'required|array',
+            'schedule.*.wday'    => 'required|integer|in:0,1,2,3,4,5,6',
+            'schedule.*.shop_id' => 'nullable|integer|exists:shops,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        try {
+            foreach ($request->schedule as $item) {
+                WdayShop::updateOrCreate(
+                    ['wday'    => $item['wday']],
+                    ['shop_id' => $item['shop_id']]
+                );
+            }
+
+            return response()->json([
+                'success' => true,
             ]);
 
         } catch (\Exception $e) {

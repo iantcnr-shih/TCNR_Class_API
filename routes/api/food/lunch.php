@@ -55,4 +55,8 @@ Route::post('/updateBubbleteaOrder', [LunchController::class, 'updateBubbleteaOr
 Route::post('/deleteBubbleteaOrder', [LunchController::class, 'deleteBubbleteaOrder']);
 
 
+Route::get('/GetWdayShops', [LunchController::class, 'GetWdayShops']);
+Route::post('/updateWdayShops', [LunchController::class, 'updateWdayShops']);
+
+
 
