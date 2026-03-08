@@ -275,7 +275,27 @@ class AuthController extends Controller
             return response()->json(['message' => '密碼錯誤'], 401);
         }
 
-        return response()->json(['success' => true]);
+        $expireAt = now()->addSeconds(300)->timestamp * 1000;
+        return response()->json([
+            'success' => true,
+            'expireAt' => $expireAt
+        ]);
+    }
+
+    public function refresh()
+    {
+        $expireAt = now()->addSeconds(300)->timestamp * 1000;
+
+        return response()->json([
+            'expireAt' => $expireAt
+        ]);
+    }
+
+    public function serverTime()
+    {
+        return response()->json([
+            'serverTime' => now()->timestamp * 1000
+        ]);
     }
 
     public function user(Request $request)

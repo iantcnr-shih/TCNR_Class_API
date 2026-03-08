@@ -4,6 +4,8 @@ use App\Http\Controllers\AuthController;
 
 
 Route::middleware(['auth:sanctum'])->post('/verify-password', [AuthController::class, 'verifyPassword']);
+Route::post('/refresh', [AuthController::class, 'refresh']);
+Route::get('/time', [AuthController::class, 'serverTime']);
 Route::middleware(['auth:sanctum'])->get('/user', [AuthController::class, 'user']);
 Route::middleware(['auth:sanctum'])->get('/user/profile', [AuthController::class, 'profile']);
 Route::get('/getAllSkills', [AuthController::class, 'getAllSkills']);
