@@ -662,7 +662,8 @@ class AuthController extends Controller
         try {
             $AllStudents = UsersView::where('seat_number', '!=', '')
                 ->whereNotNull('seat_number')
-                ->get();
+                ->get()
+                ->makeHidden(['email', 'user_name', 'phone']);
 
             foreach ($AllStudents as $student) {
                 $skillIds = $student->skills 
