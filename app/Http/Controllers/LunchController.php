@@ -1243,7 +1243,6 @@ class LunchController extends Controller
 
     public function addFood(Request $request)
     {
-        Log::debug($request->all());
         $validator = Validator::make($request->all(), [
             'menu_category_id' => 'required|exists:menu_categories,id',
             'food_name' => [

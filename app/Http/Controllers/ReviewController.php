@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreReviewRequest;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReviewController extends Controller
 {
@@ -44,7 +45,9 @@ class ReviewController extends Controller
                 'r.food_id',
                 DB::raw('f.food_name as food_name'),
                 'r.user_id',
-                'u.user_name',
+                'u.user_en_name',
+                'u.user_nick_name',
+                'u.seat_number',
                 'r.rating',
                 'r.comment',
                 'r.created_at',
@@ -93,6 +96,7 @@ class ReviewController extends Controller
         try {
             $payload = $request->only(['shop_id', 'food_id', 'rating', 'comment']);
 
+
             $user = $request->user();
 
             if (!$user) {
@@ -101,11 +105,10 @@ class ReviewController extends Controller
                 ], 401);
             }
 
-
             $newId = DB::table('reviews')->insertGetId([
                 'shop_id' => $payload['shop_id'],
                 'food_id' => $payload['food_id'] ?? null,
-                'user_id' => $user->id,
+                'user_id' => $user->user_id,
                 'rating'  => $payload['rating'],
                 'comment' => $payload['comment'] ?? null,
             ]);
@@ -123,7 +126,9 @@ class ReviewController extends Controller
                     'r.food_id',
                     DB::raw('f.food_name as food_name'),
                     'r.user_id',
-                    'u.user_name',
+                    'u.user_en_name',
+                    'u.user_nick_name',
+                    'u.seat_number',
                     'r.rating',
                     'r.comment',
                     'r.created_at',
