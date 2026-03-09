@@ -111,6 +111,8 @@ class ReviewController extends Controller
                 'user_id' => $user->user_id,
                 'rating'  => $payload['rating'],
                 'comment' => $payload['comment'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             // 回傳含 user_name / food_name / shop_name
@@ -144,6 +146,19 @@ class ReviewController extends Controller
                 ], 409);
             }
             throw $e;
+        } catch (QueryException $e) {
+            return response()->json([
+                'message' => 'Database Error',
+                'sqlstate' => $e->getCode(),
+                'error' => $e->getMessage(),
+            ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Server Error',
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 500);
         }
     }
 }
