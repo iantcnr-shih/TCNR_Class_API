@@ -307,7 +307,9 @@ class AuthController extends Controller
             $user->load('roles');
             $userData = [
                 'user_id' => $user->id,
-                'user_name' => $user->user_name,
+                'avatar' => $user->avatar,
+                'user_en_name' => $user->user_en_name,
+                'user_nick_name' => $user->user_nick_name,
                 'seat_number' => $user->seat_number,
                 'roles' => $user->roles->pluck('role_name'),
             ];
@@ -429,7 +431,7 @@ class AuthController extends Controller
             'profiledata.user_nick_name' => 'nullable|string|max:20',
             'profiledata.position_id' => 'nullable|integer',
             'profiledata.user_title' => 'nullable|string|max:30',
-            'profiledata.seat_number' => 'required|integer|min:1',
+            'profiledata.seat_number' => 'nullable|integer|min:1',
             'profiledata.phone' => 'nullable|string|max:15',
             'profiledata.github' => 'nullable|url|max:80',
             'profiledata.linkedin' => 'nullable|url|max:255',
@@ -541,6 +543,49 @@ class AuthController extends Controller
         ]);
     }
 
+    public function addUserGuestRole(Request $request)
+    {
+        $auth = $request->user();
+        $avatar = $request->input('avatar');
+
+        $guest = Users::create([
+            'avatar' => $avatar,
+            'seat_number' => null,
+        ]);
+
+        // 如果要串接訪客到登入使用者
+        $auth->user_id = $guest->id;
+        $auth->save();
+
+        // 指派訪客角色
+        $guest->roles()->attach(4); // role_id 4 是訪客
+        $guest->load('roles');
+
+        $profileData = UsersView::where('user_id', $guest->id)
+            ->first(); // 取單筆
+            
+        if ($profileData) {
+            $profileData->skills = [];
+        }
+        return response()->json([
+            'success' => true,
+            'message' => '訪客身份新增成功',
+            'profile' => $profileData,
+            'auth' => [
+                'provider' => $auth->provider,
+                'email' => $auth->email,
+            ],
+            'user' => [
+                'user_id' => $guest->id,
+                'avatar' => $guest->avatar,
+                'user_en_name' => $guest->user_en_name,
+                'user_nick_name' => $guest->user_nick_name,
+                'seat_number' => $guest->seat_number,
+                'roles' => $guest->roles->pluck('role_name'),
+            ]
+        ]);
+    }
+
     public function setSeatNumber(Request $request)
     {
         $request->validate([
@@ -549,74 +594,66 @@ class AuthController extends Controller
 
         $seatNumber = intval($request->seat_number);
 
-        // Step 1：檢查是否有其他使用者已經使用這個座號
-        $exists = AuthUsers::where('user_id', $seatNumber)->exists();
-        if ($exists) {
-            return response()->json([
-                'success' => false,
-                'message' => '此座號已被其他同學使用，請選擇其他座號'
-            ], 409);
-        }
+        // 取得登入使用者
+        $auth = $request->user(); // AuthUser
+        $user = $auth->user ?? $auth; // 如果 auth 有 user 屬性，取它，否則直接取 auth
 
-        $user = $request->user();
-        // Step 2：檢查使用者是否已經有座號
-        if ($user->user_id) {
+        // 已經設定過座號
+        if (!empty($user->seat_number)) {
             return response()->json([
                 'success' => false,
                 'message' => '該帳號座號已設定，無法修改'
             ], 409);
         }
 
-        // Step 3：寫入座號
-        $user->user_id = $request->seat_number; // 寫入 auth_users
-        $user->save();
-
-        // Step 4：寫入角色 role_id = 3 學生
-        UserRoles::firstOrCreate(
-            [
-                'user_id' => $user->user_id,
-                'role_id' => 3,
-            ]
-        );
-
-        // Step 5：讀取使用者 profile
-        $profileData = UsersView::where('user_id', $user->user_id)
-            ->first(); // 取單筆
-
-        if (!$profileData) {
+        // 檢查是否有人使用
+        $exists = AuthUsers::where('user_id', $seatNumber)->exists();
+        if ($exists) {
             return response()->json([
-                'success' => true,
-                'hasProfile' => false,
-                'message' => '使用者尚未建立個人資料',
-                'profile' => null
-            ], 200);
+                'success' => false,
+                'message' => '此座號已被其他同學使用'
+            ], 409);
         }
 
-        // Step 6：處理 skills
-        // // 假設 profileData.skills = [1,2,3,4,5]
-        $skillIds = $profileData->skills ? array_map('intval', explode(',', $profileData->skills)) : []; // 轉成陣列
-        
-        $profileData->skills = $skillIds;
+        // 設定座號
+        $auth->user_id = $seatNumber;
+        $auth->save();
 
-        // Step 7：// 重新抓使用者，確保 roles 也抓到
-        $userModel = Users::with('roles')
-            ->where('id', $user->user_id) // 用剛設定的 seat_number
-            ->first();
+        // 新增學生角色
+        UserRoles::firstOrCreate([
+            'user_id' => $seatNumber,
+            'role_id' => 3,
+        ]);
 
-        $userData = null;
-        if ($userModel) {
-            $userData = [
-                'user_name' => $userModel->user_name,
-                'seat_number' => $userModel->user_id,
-                'roles' => $userModel->roles->pluck('role_name')->toArray(),
-            ];
+        // 重新抓最新的 user
+        $user = Users::where('id', $auth->user_id)->first();
+        $user->load('roles');
+
+        $userData = [
+            'user_id' => $user->id,
+            'avatar' => $user->avatar ?? null,
+            'user_en_name' => $user->user_en_name ?? null,
+            'user_nick_name' => $user->user_nick_name ?? null,
+            'seat_number' => $user->seat_number,
+            'roles' => $user->roles->pluck('role_name'),
+        ];
+
+        // 抓 profileData
+        $profileData = UsersView::where('user_id', $user->id)->first();
+        if ($profileData) {
+            $profileData->skills = $profileData->skills ? array_map('intval', explode(',', $profileData->skills)) : [];
         }
 
+        // 回傳 JSON
         return response()->json([
             'success' => true,
             'message' => '座號設定成功',
+            'user' => $userData,
+            'auth' => [
+                'provider' => $auth->provider ?? null,
+                'email' => $auth->email ?? null,
+            ],
             'profile' => $profileData,
-            'user' => $userData
         ]);
     }
     

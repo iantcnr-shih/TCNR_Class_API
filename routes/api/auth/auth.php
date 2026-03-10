@@ -11,6 +11,7 @@ Route::middleware(['auth:sanctum'])->get('/user/profile', [AuthController::class
 Route::get('/getAllSkills', [AuthController::class, 'getAllSkills']);
 Route::get('/GetPositions', [AuthController::class, 'GetPositions']);
 Route::middleware(['auth:sanctum'])->post('/skills/add', [AuthController::class, 'addSkill']);
+Route::middleware(['auth:sanctum'])->post('/user/addUserGuestRole', [AuthController::class, 'addUserGuestRole']);
 Route::middleware(['auth:sanctum'])->post('/user/setSeatNumber', [AuthController::class, 'setSeatNumber']);
 Route::middleware(['auth:sanctum'])->post('/user/updateAvatar', [AuthController::class, 'updateAvatar']);
 Route::middleware(['auth:sanctum'])->post('/user/updateprofile', [AuthController::class, 'updateprofile']);
